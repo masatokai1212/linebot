@@ -1,5 +1,9 @@
 {
   "dependencies": {
-    "@line/bot-sdk": "^9.5.0"
+    "@line/bot-sdk": "^9.5.0",
+    "node-jose": "^2.2.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7"
   }
 }
