@@ -18,8 +18,6 @@ const app: Application = express();
 app.use(express.json());
 
 app.get('/', async (_: Request, res: Response): Promise<void> => {
-  // 非同期処理を行う場合は、awaitを使用します
-  // 例: const data = await someAsyncFunction();
   res.send('Hello, world!');
 });
 
@@ -39,24 +37,21 @@ const textEventHandler = async (event: WebhookEvent): Promise<MessageAPIResponse
   await client.replyMessage(replyToken, response);
 };
 
-app.post('/api/webhook', middleware(middlewareConfig), async (req: Request, res: Response): Promise<void> => {
-  res.send("HTTP POST request sent to the webhook URL!");
-
-  const { events } = req.body as WebhookRequestBody;
-  events.forEach((event) => {
-    switch (event.type) {
-      case "message": {
-        const { replyToken, message } = event;
-        if (message.type === "text") {
-          client.replyMessage(replyToken, { type: "text", text: message.text });
+app.post('/webhook', middleware(middlewareConfig), async (req: Request, res: Response): Promise<void> => {
+  const events: WebhookEvent[] = req.body.events;
+  await Promise.all(
+    events.map(async (event: WebhookEvent) => {
+      try {
+        await textEventHandler(event);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          console.error(err);
         }
-
-        break;
+        return res.status(500).send('Error');
       }
-      default:
-        break;
-    }
-  });
+    })
+  );
+  res.status(200).send('Success');
 });
 
 export default app;
