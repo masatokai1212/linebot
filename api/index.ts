@@ -39,19 +39,19 @@ const textEventHandler = async (event: WebhookEvent): Promise<MessageAPIResponse
 
 app.post('/webhook', middleware(middlewareConfig), async (req: Request, res: Response): Promise<void> => {
   const events: WebhookEvent[] = req.body.events;
-  await Promise.all(
-    events.map(async (event: WebhookEvent) => {
-      try {
+  try {
+    await Promise.all(
+      events.map(async (event: WebhookEvent) => {
         await textEventHandler(event);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          console.error(err);
-        }
-        return res.status(500).send('Error');
-      }
-    })
-  );
-  res.status(200).send('Success');
+      })
+    );
+    res.status(200).send('Success');
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error('Error handling event:', err);
+    }
+    res.status(500).send('Error');
+  }
 });
 
 export default app;
