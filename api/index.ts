@@ -17,7 +17,10 @@ const lineClient = new Client({
 });
 
 export default (req: VercelRequest, res: VercelResponse) => {
-  res.send("HTTP POST request sent to the webhook URL!");
+  if (req.method === 'GET') {
+    res.status(200).send('Success');
+    return;
+  }
 
   // ユーザーがbotに送ったメッセージをそのまま返す
   const { events } = req.body as WebhookRequestBody;
@@ -35,4 +38,6 @@ export default (req: VercelRequest, res: VercelResponse) => {
         break;
     }
   });
+
+  res.status(200).send("HTTP POST request sent to the webhook URL!");
 };
