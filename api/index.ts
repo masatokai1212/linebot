@@ -1,35 +1,54 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { middleware, MiddlewareConfig, WebhookEvent, TextMessage, MessageAPIResponseBase } from '@line/bot-sdk';
+import express, { Application, Request, Response } from 'express';
 import { Client, WebhookRequestBody } from '@line/bot-sdk';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// 実行時に必要なパラメータを環境変数から取得
 const config = {
-  channelSecret: process.env.CHANNEL_SECRET as string,
-  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN as string,
+  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN || '',
+  channelSecret: process.env.CHANNEL_SECRET || '',
 };
 
-// LINE Messaging API Clientの初期化
-const lineClient = new Client({
-  channelSecret: config.channelSecret,
-  channelAccessToken: config.channelAccessToken,
+const middlewareConfig: MiddlewareConfig = config;
+const client = new Client(config);
+
+const app: Application = express();
+app.use(express.json());
+
+app.get('/', async (_: Request, res: Response): Promise<void> => {
+  // 非同期処理を行う場合は、awaitを使用します
+  // 例: const data = await someAsyncFunction();
+  res.send('Hello, world!');
 });
 
-export default (req: VercelRequest, res: VercelResponse) => {
-  if (req.method === 'GET') {
-    res.status(200).send('Success');
+const textEventHandler = async (event: WebhookEvent): Promise<MessageAPIResponseBase | undefined> => {
+  if (event.type !== 'message' || event.message.type !== 'text') {
     return;
   }
 
-  // ユーザーがbotに送ったメッセージをそのまま返す
+  const { replyToken } = event;
+  const { text } = event.message;
+
+  const response: TextMessage = {
+    type: 'text',
+    text: text,
+  };
+
+  await client.replyMessage(replyToken, response);
+};
+
+app.post('/api/webhook', middleware(middlewareConfig), async (req: Request, res: Response): Promise<void> => {
+  res.send("HTTP POST request sent to the webhook URL!");
+
   const { events } = req.body as WebhookRequestBody;
   events.forEach((event) => {
     switch (event.type) {
       case "message": {
         const { replyToken, message } = event;
         if (message.type === "text") {
-          lineClient.replyMessage(replyToken, { type: "text", text: message.text });
+          client.replyMessage(replyToken, { type: "text", text: message.text });
         }
 
         break;
@@ -38,6 +57,6 @@ export default (req: VercelRequest, res: VercelResponse) => {
         break;
     }
   });
+});
 
-  res.status(200).send("HTTP POST request sent to the webhook URL!");
-};
+export default app;
